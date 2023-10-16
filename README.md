@@ -9,4 +9,4 @@ bun run dev
 Open http://localhost:3000/ with your browser to see the result.
 
 ## Swagger
-Go to `http://localhost:3000/swagger` to see the available endpoints!
+Go to http://localhost:3000/swagger to see the available endpoints!
