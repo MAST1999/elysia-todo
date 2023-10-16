@@ -112,7 +112,7 @@ export const authRoute = new Elysia()
       if (!session) {
         throw HttpError.Unauthorized("Please login frist.");
       }
-      const newList = db
+      const { userId: _, ...newList } = db
         .insert(list)
         .values({ ...body, userId: session.user.userId })
         .returning()
@@ -122,6 +122,7 @@ export const authRoute = new Elysia()
     },
     {
       body: t.Omit(listInsert, ["id", "userId", "createdAt", "modifiedAt"]),
+      response: t.Omit(listSelect, ["userId"]),
       detail: { tags: ["List"] },
     },
   )
@@ -155,7 +156,7 @@ export const authRoute = new Elysia()
 
       const listUpdated = db
         .update(list)
-        .set(body)
+        .set({ ...body, modifiedAt: new Date() })
         .where(and(eq(list.userId, session.user.userId), eq(list.id, body.id)))
         .returning()
         .get();
@@ -177,7 +178,7 @@ export const authRoute = new Elysia()
 
       const todoUpdated = db
         .update(todo)
-        .set(body)
+        .set({ ...body, modifiedAt: new Date() })
         .where(and(eq(todo.userId, session.user.userId), eq(todo.id, body.id)))
         .returning()
         .get();
@@ -238,10 +239,7 @@ export const authRoute = new Elysia()
     },
     {
       params: t.Object({ id: t.String() }),
-      response: t.Intersect([
-        t.Omit(listSelect, ["userId"]),
-        t.Object({ todos: t.Array(t.Omit(todoSelect, ["userId"])) }),
-      ]),
+      response: "list",
       detail: { tags: ["List"] },
     },
   )
