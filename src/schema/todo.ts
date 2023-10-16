@@ -30,8 +30,12 @@ export const todo = sqliteTable("todo", {
     .notNull()
     .references(() => list.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
-  completed: integer("completed", { mode: "boolean" }).$default(() => false),
-  bookmarked: integer("bookmarked", { mode: "boolean" }).$default(() => false),
+  completed: integer("completed", { mode: "boolean" })
+    .notNull()
+    .$default(() => false),
+  bookmarked: integer("bookmarked", { mode: "boolean" })
+    .notNull()
+    .$default(() => false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

@@ -146,6 +146,50 @@ export const authRoute = new Elysia()
       detail: { tags: ["Todo"] },
     },
   )
+  .patch(
+    "/list",
+    ({ HttpError, session, db, body }) => {
+      if (!session) {
+        throw HttpError.Unauthorized("Please login frist.");
+      }
+
+      const listUpdated = db
+        .update(list)
+        .set(body)
+        .where(and(eq(list.userId, session.user.userId), eq(list.id, body.id)))
+        .returning()
+        .get();
+
+      return listUpdated;
+    },
+    {
+      body: t.Omit(listSelect, ["userId", "createdAt", "modifiedAt"]),
+      response: t.Omit(listSelect, ["userId"]),
+      detail: { tags: ["List"] },
+    },
+  )
+  .patch(
+    "/todo",
+    ({ HttpError, session, db, body }) => {
+      if (!session) {
+        throw HttpError.Unauthorized("Please login frist.");
+      }
+
+      const todoUpdated = db
+        .update(todo)
+        .set(body)
+        .where(and(eq(todo.userId, session.user.userId), eq(todo.id, body.id)))
+        .returning()
+        .get();
+
+      return todoUpdated;
+    },
+    {
+      body: t.Omit(todoSelect, ["userId", "createdAt", "modifiedAt"]),
+      response: t.Omit(todoSelect, ["userId"]),
+      detail: { tags: ["Todo"] },
+    },
+  )
   .get(
     "/lists",
     ({ db, session, HttpError }) => {
