@@ -1,18 +1,38 @@
-import Elysia, { t } from "elysia";
+import { betterSqlite3 } from "@lucia-auth/adapter-sqlite";
+import { and, eq, getTableColumns } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
+import Elysia, { t } from "elysia";
 import { lucia } from "lucia";
 import { elysia } from "lucia/middleware";
-import { betterSqlite3 } from "@lucia-auth/adapter-sqlite";
-import { dbConnection } from "./db";
 import { context } from "./context";
+import { dbConnection } from "./db";
 import { list, todo } from "./schema";
-import { and, eq, getTableColumns } from "drizzle-orm";
 
-const listInsert = createInsertSchema(list);
+const baseListInsert = createInsertSchema(list);
+const listInsert = t.Omit(baseListInsert, [
+  "id",
+  "userId",
+  "createdAt",
+  "modifiedAt",
+]);
 const listSelect = createSelectSchema(list);
 
-const todoInsert = createInsertSchema(todo);
-const todoSelect = createSelectSchema(todo);
+const baseTodoInsert = createInsertSchema(todo);
+const todoInsert = t.Omit(baseTodoInsert, [
+  "id",
+  "userId",
+  "createdAt",
+  "modifiedAt",
+]);
+const baseTodoSelect = createSelectSchema(todo);
+const todoSelect = t.Omit(baseTodoSelect, ["userId"]);
+
+const listResponseWithTodos = t.Array(
+  t.Composite([
+    t.Omit(listSelect, ["userId"]),
+    t.Object({ todos: t.Array(todoSelect) }),
+  ])
+);
 
 export const auth = lucia({
   adapter: betterSqlite3(dbConnection, {
@@ -21,6 +41,7 @@ export const auth = lucia({
     user: "user",
   }),
   env: "DEV",
+  csrfProtection: false,
   middleware: elysia(),
   getUserAttributes(databaseUser) {
     return {
@@ -43,18 +64,10 @@ export const authRoute = new Elysia()
     t.Object({
       username: t.String({ maxLength: 20, minLength: 4 }),
       password: t.String({ maxLength: 50, minLength: 8 }),
-    }),
+    })
   )
-  .model("todo", t.Omit(todoSelect, ["userId"]))
-  .model(
-    "list",
-    t.Array(
-      t.Intersect([
-        t.Omit(listSelect, ["userId"]),
-        t.Object({ todos: t.Array(t.Omit(todoSelect, ["userId"])) }),
-      ]),
-    ),
-  )
+  .model("todo", todoSelect)
+  .model("list", listResponseWithTodos)
   .post(
     "/sign-up",
     async (ctx) => {
@@ -85,7 +98,7 @@ export const authRoute = new Elysia()
       ctx.set.status = ctx.httpStatus.HTTP_204_NO_CONTENT;
       ctx.set.headers.Location = "/";
     },
-    { body: "auth", detail: { tags: ["Auth"] } },
+    { body: "auth", detail: { tags: ["Auth"] } }
   )
   .post(
     "/sign-in",
@@ -93,7 +106,7 @@ export const authRoute = new Elysia()
       const user = await ctx.auth.useKey(
         "username",
         ctx.body.username.toLowerCase(),
-        ctx.body.password,
+        ctx.body.password
       );
       const session = await auth.createSession({
         userId: user.userId,
@@ -104,7 +117,7 @@ export const authRoute = new Elysia()
       ctx.set.headers.Location = "/";
       ctx.set.status = ctx.httpStatus.HTTP_204_NO_CONTENT;
     },
-    { body: "auth", detail: { tags: ["Auth"] } },
+    { body: "auth", detail: { tags: ["Auth"] } }
   )
   .post(
     "/list",
@@ -121,10 +134,10 @@ export const authRoute = new Elysia()
       return newList;
     },
     {
-      body: t.Omit(listInsert, ["id", "userId", "createdAt", "modifiedAt"]),
+      body: listInsert,
       response: t.Omit(listSelect, ["userId"]),
       detail: { tags: ["List"] },
-    },
+    }
   )
   .post(
     "/todo",
@@ -142,10 +155,10 @@ export const authRoute = new Elysia()
       return newTodo;
     },
     {
-      body: t.Omit(todoInsert, ["id", "userId", "createdAt", "modifiedAt"]),
-      response: t.Omit(todoSelect, ["userId"]),
+      body: todoInsert,
+      response: todoSelect,
       detail: { tags: ["Todo"] },
-    },
+    }
   )
   .patch(
     "/list",
@@ -167,7 +180,7 @@ export const authRoute = new Elysia()
       body: t.Omit(listSelect, ["userId", "createdAt", "modifiedAt"]),
       response: t.Omit(listSelect, ["userId"]),
       detail: { tags: ["List"] },
-    },
+    }
   )
   .patch(
     "/todo",
@@ -186,10 +199,10 @@ export const authRoute = new Elysia()
       return todoUpdated;
     },
     {
-      body: t.Omit(todoSelect, ["userId", "createdAt", "modifiedAt"]),
-      response: t.Omit(todoSelect, ["userId"]),
+      body: t.Omit(todoSelect, ["createdAt", "modifiedAt"]),
+      response: todoSelect,
       detail: { tags: ["Todo"] },
-    },
+    }
   )
   .get(
     "/lists",
@@ -211,7 +224,7 @@ export const authRoute = new Elysia()
     {
       response: "list",
       detail: { tags: ["List"] },
-    },
+    }
   )
   .get(
     "/list/:id",
@@ -239,9 +252,12 @@ export const authRoute = new Elysia()
     },
     {
       params: t.Object({ id: t.String() }),
-      response: "list",
+      response: t.Composite([
+        t.Omit(listSelect, ["userId"]),
+        t.Object({ todos: t.Array(todoSelect) }),
+      ]),
       detail: { tags: ["List"] },
-    },
+    }
   )
   .get(
     "/todo/:id",
@@ -268,7 +284,7 @@ export const authRoute = new Elysia()
       params: t.Object({ id: t.String() }),
       response: "todo",
       detail: { tags: ["Todo"] },
-    },
+    }
   )
   .delete(
     "/todo/:id",
@@ -280,7 +296,7 @@ export const authRoute = new Elysia()
       db.delete(todo).where(eq(todo.id, id)).get();
       set.status = httpStatus.HTTP_204_NO_CONTENT;
     },
-    { params: t.Object({ id: t.String() }), detail: { tags: ["Todo"] } },
+    { params: t.Object({ id: t.String() }), detail: { tags: ["Todo"] } }
   )
   .delete(
     "/list/:id",
@@ -292,7 +308,7 @@ export const authRoute = new Elysia()
       db.delete(list).where(eq(list.id, id)).get();
       set.status = httpStatus.HTTP_204_NO_CONTENT;
     },
-    { params: t.Object({ id: t.String() }), detail: { tags: ["List"] } },
+    { params: t.Object({ id: t.String() }), detail: { tags: ["List"] } }
   );
 
 export type Auth = typeof auth;

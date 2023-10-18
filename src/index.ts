@@ -1,8 +1,10 @@
 import { Elysia } from "elysia";
 import { authRoute } from "./auth";
 import { swagger } from "@elysiajs/swagger";
+import { cors } from "@elysiajs/cors";
 
 const app = new Elysia()
+  .use(cors({ origin: "*" }))
   .get("/", () => "Hello Elysia")
   .use(authRoute)
   .use(swagger({ path: "/swagger" }))
