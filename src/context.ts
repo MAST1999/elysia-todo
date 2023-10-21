@@ -10,7 +10,7 @@ const stream = pretty({
 });
 
 export const context = new Elysia({ name: "context" })
-  .use(logger({ level: "info", stream }))
+  .use(logger({ level: "debug", stream }))
   .use(HttpStatusCode())
   .use(httpError())
   .use(httpErrorDecorator)

@@ -2,30 +2,14 @@ import { Elysia } from "elysia";
 import { authRoute } from "./auth";
 import { swagger } from "@elysiajs/swagger";
 import { cors } from "@elysiajs/cors";
+import { context } from "./context";
 
 const app = new Elysia()
-  .use(cors({ origin: "*" }))
-  .get("/", () => "Hello Elysia")
-  .use(authRoute)
-  .use(swagger({ path: "/swagger" }))
-  .onStart(({ log }) => {
-    if (log) {
-      log.info("Server started");
-    }
-  })
+  .use(cors({ origin: true, preflight: true }))
+  .use(context)
   .onStop(({ log }) => {
     if (log) {
       log.info("Server stopped");
-    }
-  })
-  .onRequest(({ log, request }) => {
-    if (log) {
-      log.debug(`Request received: ${request.method}: ${request.url}`);
-    }
-  })
-  .onResponse(({ log, request }) => {
-    if (log) {
-      log.debug(`Response sent: ${request.method}: ${request.url}`);
     }
   })
   .onError(({ log, error }) => {
@@ -33,8 +17,18 @@ const app = new Elysia()
       log.error(error);
     }
   })
-  .listen(3000);
+  .get("/", () => "Hello Elysia")
+  .use(authRoute)
+  .use(swagger({ path: "/swagger" }))
+  .listen(4000);
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
 );
+
+const routes = app.routes
+  .sort((a, b) => a.path.localeCompare(b.path))
+  .map((r, i) =>
+    i === 0 ? "\t" + r.method + "\t" + r.path : r.method + "\t" + r.path,
+  );
+console.info(routes.join("\n\t"), "available paths");

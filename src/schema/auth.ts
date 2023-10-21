@@ -5,7 +5,7 @@ import { sqliteTable, text, blob } from "drizzle-orm/sqlite-core";
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
   // other user attributes
-  username: text("username", { mode: "text", length: 20 }),
+  username: text("username", { mode: "text", length: 20 }).unique(),
 });
 
 export const profile = sqliteTable("profile", {
