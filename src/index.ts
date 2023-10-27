@@ -5,7 +5,13 @@ import { cors } from "@elysiajs/cors";
 import { context } from "./context";
 
 const app = new Elysia()
-  .use(cors({ origin: true, preflight: true }))
+  .use(
+    cors({
+      origin: "http://localhost:3000",
+      preflight: true,
+      credentials: true,
+    }),
+  )
   .use(context)
   .onStop(({ log }) => {
     if (log) {

@@ -121,6 +121,18 @@ export const authRoute = new Elysia()
     { body: "auth", detail: { tags: ["Auth"] } },
   )
   .post(
+    "/sign-out",
+    (ctx) => {
+      if (!ctx.session) return;
+      const authReqeust = ctx.auth.handleRequest(ctx);
+      authReqeust.setSession(null);
+
+      ctx.set.headers.Location = "/";
+      ctx.set.status = ctx.httpStatus.HTTP_204_NO_CONTENT;
+    },
+    { detail: { tags: ["Auth"] } },
+  )
+  .post(
     "/list",
     ({ db, session, HttpError, body }) => {
       if (!session) {
@@ -147,7 +159,7 @@ export const authRoute = new Elysia()
         throw HttpError.Unauthorized("Please login frist.");
       }
 
-      const newTodo = db
+      const { userId: _, ...newTodo } = db
         .insert(todo)
         .values({ ...body, userId: session.user.userId })
         .returning()
@@ -168,7 +180,7 @@ export const authRoute = new Elysia()
         throw HttpError.Unauthorized("Please login frist.");
       }
 
-      const listUpdated = db
+      const { userId: _, ...listUpdated } = db
         .update(list)
         .set({ ...body, modifiedAt: new Date() })
         .where(and(eq(list.userId, session.user.userId), eq(list.id, body.id)))
@@ -190,7 +202,7 @@ export const authRoute = new Elysia()
         throw HttpError.Unauthorized("Please login frist.");
       }
 
-      const todoUpdated = db
+      const { userId: _, ...todoUpdated } = db
         .update(todo)
         .set({ ...body, modifiedAt: new Date() })
         .where(and(eq(todo.userId, session.user.userId), eq(todo.id, body.id)))
@@ -285,6 +297,30 @@ export const authRoute = new Elysia()
       params: t.Object({ id: t.String() }),
       response: "todo",
       detail: { tags: ["Todo"] },
+    },
+  )
+  .get(
+    "/profile",
+    ({ session, HttpError }) => {
+      if (!session) {
+        throw HttpError.Unauthorized("Please login frist.");
+      }
+
+      // const user = db.query.user
+      //   .findFirst({
+      //     where: (fields, { eq }) => eq(fields.id, session.user.userId),
+      //     // with: { profile: { columns: { userId: false, id: false } } },
+      //     columns: { id: false },
+      //   })
+      //   .sync()!;
+
+      return { username: session.user.username };
+    },
+    {
+      response: t.Object({
+        username: t.Nullable(t.String()),
+      }),
+      detail: { tags: ["User"] },
     },
   )
   .delete(
