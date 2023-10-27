@@ -130,7 +130,7 @@ export const authRoute = new Elysia()
         .insert(list)
         .values({ ...body, userId: session.user.userId })
         .returning()
-        .get();
+        .all()[0];
 
       return newList;
     },
@@ -151,7 +151,7 @@ export const authRoute = new Elysia()
         .insert(todo)
         .values({ ...body, userId: session.user.userId })
         .returning()
-        .get();
+        .all()[0];
 
       return newTodo;
     },
@@ -173,7 +173,7 @@ export const authRoute = new Elysia()
         .set({ ...body, modifiedAt: new Date() })
         .where(and(eq(list.userId, session.user.userId), eq(list.id, body.id)))
         .returning()
-        .get();
+        .all()[0];
 
       return listUpdated;
     },
@@ -195,7 +195,7 @@ export const authRoute = new Elysia()
         .set({ ...body, modifiedAt: new Date() })
         .where(and(eq(todo.userId, session.user.userId), eq(todo.id, body.id)))
         .returning()
-        .get();
+        .all()[0];
 
       return todoUpdated;
     },
@@ -273,7 +273,7 @@ export const authRoute = new Elysia()
         .from(todo)
         .where(and(eq(todo.userId, session.user.userId), eq(todo.id, id)))
         .limit(1)
-        .get();
+        .all()[0];
 
       if (!todoTarget) {
         throw HttpError.NotFound("Todo not found.");
@@ -294,7 +294,7 @@ export const authRoute = new Elysia()
         throw HttpError.Unauthorized("Please login frist.");
       }
 
-      db.delete(todo).where(eq(todo.id, id)).get();
+      db.delete(todo).where(eq(todo.id, id)).all();
       set.status = httpStatus.HTTP_204_NO_CONTENT;
     },
     { params: t.Object({ id: t.String() }), detail: { tags: ["Todo"] } },
@@ -306,7 +306,7 @@ export const authRoute = new Elysia()
         throw HttpError.Unauthorized("Please login frist.");
       }
 
-      db.delete(list).where(eq(list.id, id)).get();
+      db.delete(list).where(eq(list.id, id)).all();
       set.status = httpStatus.HTTP_204_NO_CONTENT;
     },
     { params: t.Object({ id: t.String() }), detail: { tags: ["List"] } },
