@@ -20,7 +20,7 @@ const app = new Elysia()
   .get("/", () => "Hello Elysia")
   .use(authRoute)
   .use(swagger({ path: "/swagger" }))
-  .listen(4000);
+  .listen(3000);
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
@@ -31,4 +31,4 @@ const routes = app.routes
   .map((r, i) =>
     i === 0 ? "\t" + r.method + "\t" + r.path : r.method + "\t" + r.path,
   );
-console.info(routes.join("\n\t"), "available paths");
+console.info("   Available paths\n", routes.join("\n\t"));

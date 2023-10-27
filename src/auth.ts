@@ -42,6 +42,7 @@ export const auth = lucia({
   }),
   env: "DEV",
   csrfProtection: false,
+  experimental: { debugMode: true },
   middleware: elysia(),
   getUserAttributes(databaseUser) {
     return {
